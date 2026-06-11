@@ -24,7 +24,9 @@ Internal tool for tracking Instagram mentions and managing giveaways.
 
 ### Frontend (GitHub Pages)
 1. Update `API_URL` in `frontend/app.js` to your Render backend URL.
-2. Deploy the `frontend` folder to GitHub Pages.
+2. Go to your GitHub Repository Settings -> Pages.
+3. Under **Build and deployment** -> **Source**, select **GitHub Actions**.
+4. The dashboard will automatically deploy when you push to the main branch.
 
 ## Instagram API Note
 Ensure your Instagram Business Account is linked to a Facebook Page and you have a valid Long-Lived Access Token. The tool uses the `/{ig-business-id}/tags` endpoint.
