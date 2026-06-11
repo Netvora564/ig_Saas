@@ -11,149 +11,173 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// --- Database Configuration (Supabase or Mock) ---
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const isMockMode = !supabaseUrl || !supabaseKey || supabaseUrl.includes('placeholder');
+
+let supabase;
+let mockDb = {
+    campaigns: [
+        { id: 1, name: 'Sample Campaign', ig_business_id: '12345', active: true, created_at: new Date() }
+    ],
+    participants: [],
+    winners: []
+};
+
+if (!isMockMode) {
+    supabase = createClient(supabaseUrl, supabaseKey);
+    console.log('Running in Production Mode (Supabase)');
+} else {
+    console.log('Running in Mock Mode (In-Memory)');
+}
 
 app.get('/', (req, res) => {
-    res.json({ message: 'Instagram UGC Campaign Tracker API' });
+    res.json({ message: 'Instagram UGC Campaign Tracker API', mode: isMockMode ? 'mock' : 'production' });
 });
+
+// --- Core Logic ---
 
 const syncCampaigns = async () => {
     console.log('Starting sync process...');
-    const { data: campaigns, error } = await supabase
-        .from('campaigns')
-        .select('*')
-        .eq('active', true);
+    let campaigns;
 
-    if (error) {
-        console.error('Error fetching active campaigns:', error);
-        return;
+    if (!isMockMode) {
+        const { data, error } = await supabase.from('campaigns').select('*').eq('active', true);
+        if (error) return console.error('Error fetching campaigns:', error);
+        campaigns = data;
+    } else {
+        campaigns = mockDb.campaigns.filter(c => c.active);
     }
 
     for (const campaign of campaigns) {
         try {
-            console.log(`Syncing campaign: ${campaign.name} (${campaign.ig_business_id})`);
-            const igAccessToken = process.env.IG_ACCESS_TOKEN;
-            const url = `https://graph.facebook.com/v19.0/${campaign.ig_business_id}/tags?fields=id,media_type,media_url,timestamp,username&access_token=${igAccessToken}`;
+            console.log(`Syncing campaign: ${campaign.name}`);
+            let taggedMedia;
 
-            const response = await axios.get(url);
-            const taggedMedia = response.data.data;
+            if (!isMockMode && process.env.IG_ACCESS_TOKEN) {
+                const url = `https://graph.facebook.com/v19.0/${campaign.ig_business_id}/tags?fields=id,media_type,media_url,timestamp,username&access_token=${process.env.IG_ACCESS_TOKEN}`;
+                const response = await axios.get(url);
+                taggedMedia = response.data.data;
+            } else {
+                // Mock Instagram Data
+                taggedMedia = [
+                    { id: `m${Date.now()}1`, username: 'user_alpha', media_url: 'https://via.placeholder.com/150', timestamp: new Date().toISOString() },
+                    { id: `m${Date.now()}2`, username: 'user_beta', media_url: 'https://via.placeholder.com/150', timestamp: new Date().toISOString() }
+                ];
+            }
 
-            if (taggedMedia && taggedMedia.length > 0) {
+            if (taggedMedia) {
                 for (const media of taggedMedia) {
-                    const { error: insertError } = await supabase
-                        .from('participants')
-                        .insert({
+                    if (!isMockMode) {
+                        await supabase.from('participants').insert({
                             campaign_id: campaign.id,
                             username: media.username,
                             media_id: media.id,
                             media_url: media.media_url,
                             timestamp: media.timestamp
                         });
-
-                    if (insertError && insertError.code !== '23505') { // Ignore unique constraint violation
-                        console.error(`Error inserting participant for media ${media.id}:`, insertError);
+                    } else {
+                        // Mock deduplication
+                        if (!mockDb.participants.find(p => p.media_id === media.id)) {
+                            mockDb.participants.push({
+                                id: mockDb.participants.length + 1,
+                                campaign_id: campaign.id,
+                                username: media.username,
+                                media_id: media.id,
+                                media_url: media.media_url,
+                                timestamp: media.timestamp,
+                                created_at: new Date()
+                            });
+                        }
                     }
                 }
             }
-            console.log(`Successfully synced campaign: ${campaign.name}`);
         } catch (err) {
-            console.error(`Failed to sync campaign ${campaign.name}:`, err.message);
+            console.error(`Failed to sync ${campaign.name}:`, err.message);
         }
     }
-    console.log('Sync process completed.');
+    console.log('Sync completed.');
 };
 
 app.get('/sync', async (req, res) => {
-    try {
-        await syncCampaigns();
-        res.json({ message: 'Sync completed successfully' });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+    await syncCampaigns();
+    res.json({ message: 'Sync completed successfully' });
 });
 
-// Run every 5 minutes
-cron.schedule('*/5 * * * *', () => {
-    syncCampaigns();
-});
+cron.schedule('*/5 * * * *', () => syncCampaigns());
 
-// Campaign Management
+// --- API Endpoints ---
+
 app.get('/campaigns', async (req, res) => {
-    const { data, error } = await supabase
-        .from('campaigns')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-    if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
+    if (!isMockMode) {
+        const { data, error } = await supabase.from('campaigns').select('*').order('created_at', { ascending: false });
+        if (error) return res.status(500).json({ error: error.message });
+        return res.json(data);
+    }
+    res.json([...mockDb.campaigns].reverse());
 });
 
 app.post('/campaigns', async (req, res) => {
     const { name, ig_business_id } = req.body;
-    const { data, error } = await supabase
-        .from('campaigns')
-        .insert({ name, ig_business_id })
-        .select();
-
-    if (error) return res.status(500).json({ error: error.message });
-    res.json(data[0]);
+    if (!isMockMode) {
+        const { data, error } = await supabase.from('campaigns').insert({ name, ig_business_id }).select();
+        if (error) return res.status(500).json({ error: error.message });
+        return res.json(data[0]);
+    }
+    const newCampaign = { id: mockDb.campaigns.length + 1, name, ig_business_id, active: true, created_at: new Date() };
+    mockDb.campaigns.push(newCampaign);
+    res.json(newCampaign);
 });
 
 app.get('/campaign/:id/participants', async (req, res) => {
-    const { data, error } = await supabase
-        .from('participants')
-        .select('*')
-        .eq('campaign_id', req.params.id)
-        .order('created_at', { ascending: false });
-
-    if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
+    const campaignId = parseInt(req.params.id);
+    if (!isMockMode) {
+        const { data, error } = await supabase.from('participants').select('*').eq('campaign_id', req.params.id).order('created_at', { ascending: false });
+        if (error) return res.status(500).json({ error: error.message });
+        return res.json(data);
+    }
+    const participants = mockDb.participants.filter(p => p.campaign_id === campaignId).reverse();
+    res.json(participants);
 });
 
 app.post('/campaign/:id/pick-winner', async (req, res) => {
-    const campaignId = req.params.id;
+    const campaignId = parseInt(req.params.id);
+    let participants;
 
-    // Fetch all participants
-    const { data: participants, error: pError } = await supabase
-        .from('participants')
-        .select('username')
-        .eq('campaign_id', campaignId);
+    if (!isMockMode) {
+        const { data, error } = await supabase.from('participants').select('username').eq('campaign_id', campaignId);
+        if (error) return res.status(500).json({ error: error.message });
+        participants = data;
+    } else {
+        participants = mockDb.participants.filter(p => p.campaign_id === campaignId);
+    }
 
-    if (pError) return res.status(500).json({ error: pError.message });
-    if (!participants || participants.length === 0) return res.status(404).json({ error: 'No participants found for this campaign' });
+    if (!participants || participants.length === 0) return res.status(404).json({ error: 'No participants found' });
 
-    // Random selection
-    const randomIndex = Math.floor(Math.random() * participants.length);
-    const winner = participants[randomIndex];
+    const winner = participants[Math.floor(Math.random() * participants.length)];
 
-    // Save winner
-    const { data: wData, error: wError } = await supabase
-        .from('winners')
-        .insert({
-            campaign_id: campaignId,
-            username: winner.username
-        })
-        .select();
-
-    if (wError) return res.status(500).json({ error: wError.message });
-    res.json(wData[0]);
+    if (!isMockMode) {
+        const { data, error } = await supabase.from('winners').insert({ campaign_id: campaignId, username: winner.username }).select();
+        if (error) return res.status(500).json({ error: error.message });
+        return res.json(data[0]);
+    }
+    const newWinner = { id: mockDb.winners.length + 1, campaign_id: campaignId, username: winner.username, picked_at: new Date() };
+    mockDb.winners.push(newWinner);
+    res.json(newWinner);
 });
 
 app.get('/campaign/:id/winners', async (req, res) => {
-    const { data, error } = await supabase
-        .from('winners')
-        .select('*')
-        .eq('campaign_id', req.params.id)
-        .order('picked_at', { ascending: false });
-
-    if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
+    const campaignId = parseInt(req.params.id);
+    if (!isMockMode) {
+        const { data, error } = await supabase.from('winners').select('*').eq('campaign_id', req.params.id).order('picked_at', { ascending: false });
+        if (error) return res.status(500).json({ error: error.message });
+        return res.json(data);
+    }
+    const winners = mockDb.winners.filter(w => w.campaign_id === campaignId).reverse();
+    res.json(winners);
 });
 
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-});
+app.listen(port, () => console.log(`Server running on port ${port}`));
 
-module.exports = { app, supabase };
+module.exports = { app, isMockMode };

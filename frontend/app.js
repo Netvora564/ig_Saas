@@ -1,4 +1,4 @@
-const API_URL = 'https://your-backend-url.onrender.com'; // Change this to your Render URL
+const API_URL = 'http://localhost:3000'; // Default for local dev/testing
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchCampaigns();
@@ -61,6 +61,9 @@ async function syncAll() {
     try {
         await fetch(`${API_URL}/sync`);
         alert('Sync completed!');
+        if (currentCampaignId) {
+            fetchParticipants(currentCampaignId);
+        }
     } catch (error) {
         console.error('Error syncing:', error);
         alert('Sync failed');
@@ -152,4 +155,5 @@ async function pickWinner(id) {
 
 function closeModal() {
     document.getElementById('participantsModal').classList.add('hidden');
+    currentCampaignId = null;
 }
