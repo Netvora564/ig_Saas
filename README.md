@@ -23,7 +23,7 @@ Internal tool for tracking Instagram mentions and managing giveaways.
    - `IG_ACCESS_TOKEN`: Your Instagram Graph API Access Token (with `instagram_manage_insights` and `pages_read_engagement` permissions).
 
 ### Frontend (GitHub Pages)
-1. Update `API_URL` in `frontend/app.js` to your Render backend URL.
+1. Update `API_URL` in `app.js` to your Render backend URL.
 2. Go to your GitHub Repository Settings -> Pages.
 3. Under **Build and deployment** -> **Source**, select **GitHub Actions**.
 4. The dashboard will automatically deploy when you push to the main branch.
