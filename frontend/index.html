@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram UGC Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Instagram UGC Tracker</h1>
+            <button id="syncAllBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow">
+                Sync All Campaigns
+            </button>
+        </header>
+
+        <section class="mb-12">
+            <h2 class="text-2xl font-semibold mb-4">Create New Campaign</h2>
+            <form id="createCampaignForm" class="bg-white p-6 rounded shadow-md flex gap-4">
+                <input type="text" id="campaignName" placeholder="Campaign Name" class="flex-1 border p-2 rounded" required>
+                <input type="text" id="igBusinessId" placeholder="IG Business ID" class="flex-1 border p-2 rounded" required>
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded shadow">
+                    Create
+                </button>
+            </form>
+        </section>
+
+        <section>
+            <h2 class="text-2xl font-semibold mb-4">Campaigns</h2>
+            <div id="campaignsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Campaigns will be loaded here -->
+            </div>
+        </section>
+
+        <!-- Modal for Participants -->
+        <div id="participantsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+                <div class="p-6 border-b flex justify-between items-center">
+                    <h3 id="modalTitle" class="text-xl font-bold">Participants</h3>
+                    <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">&times;</button>
+                </div>
+                <div id="modalContent" class="p-6 overflow-y-auto flex-1">
+                    <div class="flex justify-between items-center mb-4">
+                        <button id="pickWinnerBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
+                            Pick a Random Winner
+                        </button>
+                        <div id="winnerDisplay" class="text-lg font-bold text-green-600"></div>
+                    </div>
+                    <div id="participantsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        <!-- Participants will be loaded here -->
+                    </div>
+                    <div class="mt-8">
+                        <h4 class="text-lg font-bold mb-2">Previous Winners</h4>
+                        <ul id="winnersList" class="list-disc pl-5">
+                            <!-- Winners will be loaded here -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
