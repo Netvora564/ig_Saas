@@ -53,21 +53,30 @@ const syncCampaigns = async () => {
     for (const campaign of campaigns) {
         try {
             console.log(`Syncing campaign: ${campaign.name}`);
-            let taggedMedia;
+            let taggedMedia = [];
 
             if (!isMockMode && process.env.IG_ACCESS_TOKEN) {
-                const url = `https://graph.facebook.com/v19.0/${campaign.ig_business_id}/tags?fields=id,media_type,media_url,timestamp,username&access_token=${process.env.IG_ACCESS_TOKEN}`;
-                const response = await axios.get(url);
-                taggedMedia = response.data.data;
+                let nextUrl = `https://graph.facebook.com/v19.0/${campaign.ig_business_id}/tags?fields=id,media_type,media_url,timestamp,username&limit=50&access_token=${process.env.IG_ACCESS_TOKEN}`;
+
+                while (nextUrl) {
+                    const response = await axios.get(nextUrl);
+                    taggedMedia = taggedMedia.concat(response.data.data || []);
+                    nextUrl = response.data.paging && response.data.paging.next ? response.data.paging.next : null;
+
+                    // Safety break to prevent infinite loops
+                    if (taggedMedia.length > 500) break;
+                }
             } else {
                 // Mock Instagram Data
+                const randomId = Date.now();
                 taggedMedia = [
-                    { id: `m${Date.now()}1`, username: 'user_alpha', media_url: 'https://via.placeholder.com/150', timestamp: new Date().toISOString() },
-                    { id: `m${Date.now()}2`, username: 'user_beta', media_url: 'https://via.placeholder.com/150', timestamp: new Date().toISOString() }
+                    { id: `m${randomId}1`, username: 'winner_circle', media_url: 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=150', timestamp: new Date().toISOString() },
+                    { id: `m${randomId}2`, username: 'photo_enthusiast', media_url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150', timestamp: new Date().toISOString() },
+                    { id: `m${randomId}3`, username: 'ig_traveler', media_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', timestamp: new Date().toISOString() }
                 ];
             }
 
-            if (taggedMedia) {
+            if (taggedMedia.length > 0) {
                 for (const media of taggedMedia) {
                     if (!isMockMode) {
                         const { error: insErr } = await supabase.from('participants').insert({
