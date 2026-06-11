@@ -100,6 +100,33 @@ async function viewParticipants(id, name) {
     fetchWinners(id);
 
     document.getElementById('pickWinnerBtn').onclick = () => pickWinner(id);
+    document.getElementById('manualImportBtn').onclick = () => manualImport(id);
+}
+
+async function manualImport(id) {
+    const url = document.getElementById('manualUrl').value;
+    if (!url) return alert('Please enter a URL');
+
+    const btn = document.getElementById('manualImportBtn');
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(`${API_URL}/campaign/${id}/manual-import`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
+        if (response.ok) {
+            document.getElementById('manualUrl').value = '';
+            fetchParticipants(id);
+        } else {
+            alert('Failed to import from URL');
+        }
+    } catch (error) {
+        console.error('Error manual importing:', error);
+    } finally {
+        btn.disabled = false;
+    }
 }
 
 async function fetchParticipants(id) {

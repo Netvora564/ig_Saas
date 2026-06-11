@@ -190,6 +190,43 @@ app.get('/campaign/:id/winners', async (req, res) => {
     res.json(winners);
 });
 
+app.post('/campaign/:id/manual-import', async (req, res) => {
+    const campaignId = parseInt(req.params.id);
+    const { url } = req.body;
+
+    if (!url) return res.status(400).json({ error: 'URL is required' });
+
+    // Mock logic for manual import
+    const mockUsername = 'ig_user_from_link';
+    const mockMediaId = `manual_${Date.now()}`;
+    const mockMediaUrl = 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=150';
+
+    if (!isMockMode) {
+        const { data, error } = await supabase.from('participants').insert({
+            campaign_id: campaignId,
+            username: mockUsername,
+            media_id: mockMediaId,
+            media_url: mockMediaUrl,
+            timestamp: new Date().toISOString()
+        }).select();
+
+        if (error) return res.status(500).json({ error: error.message });
+        return res.json(data[0]);
+    }
+
+    const newParticipant = {
+        id: mockDb.participants.length + 1,
+        campaign_id: campaignId,
+        username: mockUsername,
+        media_id: mockMediaId,
+        media_url: mockMediaUrl,
+        timestamp: new Date().toISOString(),
+        created_at: new Date()
+    };
+    mockDb.participants.push(newParticipant);
+    res.json(newParticipant);
+});
+
 app.listen(port, () => console.log(`Server running on port ${port}`));
 
 module.exports = { app, isMockMode };
