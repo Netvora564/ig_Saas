@@ -18,9 +18,14 @@
                 <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Instagram UGC Campaign Tracker</h1>
                 <p class="text-gray-500 text-sm">Internal giveaway management system</p>
             </div>
-            <button id="syncAllBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all active:scale-95">
-                Sync All Campaigns
-            </button>
+            <div class="flex gap-3">
+                <button id="openSettingsBtn" class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3 px-4 rounded-lg shadow-sm transition-all active:scale-95 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
+                </button>
+                <button id="syncAllBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all active:scale-95">
+                    Sync All Campaigns
+                </button>
+            </div>
         </header>
 
         <section class="mb-12">
@@ -45,10 +50,37 @@
                 Active Campaigns
                 <span id="campaignCount" class="bg-gray-200 text-gray-600 text-xs py-1 px-2 rounded-full">0</span>
             </h2>
+            <div id="connectionError" class="hidden bg-red-50 border border-red-200 p-8 rounded-2xl text-center mb-8">
+                <div class="text-red-600 font-black text-xl mb-2">Connection Error</div>
+                <p class="text-red-500 mb-6">Could not connect to the backend API. Please ensure your Render backend is running and the URL is configured correctly.</p>
+                <button onclick="openSettings()" class="bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-700 transition-colors">
+                    Configure API URL
+                </button>
+            </div>
             <div id="campaignsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <!-- Campaigns loaded here -->
             </div>
         </section>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-[60]">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                <div class="p-6 border-b flex justify-between items-center bg-gray-50">
+                    <h3 class="text-xl font-black text-gray-900">System Settings</h3>
+                    <button onclick="closeSettings()" class="text-gray-400 hover:text-gray-900 text-3xl leading-none">&times;</button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Backend API URL</label>
+                        <input type="text" id="backendUrlInput" placeholder="https://your-app.onrender.com" class="w-full border-gray-200 border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                        <p class="text-[10px] text-gray-400 mt-2 italic">Leave empty to use automatic detection (localhost for dev, placeholder for prod).</p>
+                    </div>
+                    <button onclick="saveSettings()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg transition-all active:scale-95">
+                        Save Configuration
+                    </button>
+                </div>
+            </div>
+        </div>
 
         <!-- Participants Modal -->
         <div id="participantsModal" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">

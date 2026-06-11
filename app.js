@@ -1,17 +1,23 @@
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === ''
+let API_URL = localStorage.getItem('ig_saas_backend_url') || (
+    window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === ''
     ? 'http://localhost:3000'
-    : 'https://your-backend-url.onrender.com';
+    : 'https://your-backend-url.onrender.com'
+);
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchCampaigns();
     document.getElementById('createCampaignForm').addEventListener('submit', createCampaign);
     document.getElementById('syncAllBtn').addEventListener('click', syncAll);
+    document.getElementById('openSettingsBtn').addEventListener('click', openSettings);
 });
 
 async function fetchCampaigns() {
+    const errorEl = document.getElementById('connectionError');
     try {
         const response = await fetch(`${API_URL}/campaigns`);
+        if (!response.ok) throw new Error('Backend error');
         const campaigns = await response.json();
+        errorEl.classList.add('hidden');
         const list = document.getElementById('campaignsList');
         const count = document.getElementById('campaignCount');
 
@@ -38,7 +44,33 @@ async function fetchCampaigns() {
         });
     } catch (err) {
         console.error('Error fetching campaigns:', err);
+        errorEl.classList.remove('hidden');
     }
+}
+
+function openSettings() {
+    document.getElementById('backendUrlInput').value = localStorage.getItem('ig_saas_backend_url') || '';
+    document.getElementById('settingsModal').classList.remove('hidden');
+}
+
+function closeSettings() {
+    document.getElementById('settingsModal').classList.add('hidden');
+}
+
+function saveSettings() {
+    const url = document.getElementById('backendUrlInput').value.trim().replace(/\/$/, '');
+    if (url) {
+        localStorage.setItem('ig_saas_backend_url', url);
+        API_URL = url;
+    } else {
+        localStorage.removeItem('ig_saas_backend_url');
+        // Reset to default detection
+        API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === ''
+            ? 'http://localhost:3000'
+            : 'https://your-backend-url.onrender.com';
+    }
+    closeSettings();
+    fetchCampaigns();
 }
 
 async function createCampaign(e) {
