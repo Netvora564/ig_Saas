@@ -14,6 +14,7 @@ CREATE TABLE participants (
     username TEXT NOT NULL,
     media_id TEXT NOT NULL,
     media_url TEXT,
+    permalink TEXT,
     timestamp TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(campaign_id, media_id)

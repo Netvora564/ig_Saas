@@ -60,7 +60,7 @@ const syncCampaigns = async () => {
             let taggedMedia = [];
 
             if (!isMockMode && process.env.IG_ACCESS_TOKEN) {
-                let nextUrl = `https://graph.facebook.com/v19.0/${campaign.ig_business_id}/tags?fields=id,media_type,media_url,timestamp,username&limit=50&access_token=${process.env.IG_ACCESS_TOKEN}`;
+                let nextUrl = `https://graph.facebook.com/v19.0/${campaign.ig_business_id}/tags?fields=id,media_type,media_url,permalink,timestamp,username&limit=50&access_token=${process.env.IG_ACCESS_TOKEN}`;
 
                 while (nextUrl) {
                     const response = await axios.get(nextUrl);
@@ -71,8 +71,8 @@ const syncCampaigns = async () => {
             } else if (isMockMode) {
                 const randomId = Date.now();
                 taggedMedia = [
-                    { id: `m${randomId}1`, username: 'ig_fan_01', media_url: 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=300', timestamp: new Date().toISOString() },
-                    { id: `m${randomId}2`, username: 'content_creator', media_url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300', timestamp: new Date().toISOString() }
+                    { id: `m${randomId}1`, username: 'ig_fan_01', media_url: 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=300', permalink: 'https://www.instagram.com/p/C_sample1/', timestamp: new Date().toISOString() },
+                    { id: `m${randomId}2`, username: 'content_creator', media_url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300', permalink: 'https://www.instagram.com/p/C_sample2/', timestamp: new Date().toISOString() }
                 ];
             }
 
@@ -83,6 +83,7 @@ const syncCampaigns = async () => {
                         username: media.username,
                         media_id: media.id,
                         media_url: media.media_url,
+                        permalink: media.permalink,
                         timestamp: media.timestamp
                     }, { onConflict: 'campaign_id,media_id' });
                 } else {
@@ -93,6 +94,7 @@ const syncCampaigns = async () => {
                             username: media.username,
                             media_id: media.id,
                             media_url: media.media_url,
+                            permalink: media.permalink,
                             timestamp: media.timestamp,
                             created_at: new Date()
                         });
@@ -214,6 +216,7 @@ app.post('/campaign/:id/manual-import', async (req, res) => {
         const mockUsername = `user_${shortcode.substring(0, 5)}`;
         const mockMediaId = `m_manual_${shortcode}`;
         const mockMediaUrl = 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=300';
+        const permalink = url.split('?')[0];
 
         if (!isMockMode) {
             const { data, error } = await supabase.from('participants').upsert({
@@ -221,6 +224,7 @@ app.post('/campaign/:id/manual-import', async (req, res) => {
                 username: mockUsername,
                 media_id: mockMediaId,
                 media_url: mockMediaUrl,
+                permalink: permalink,
                 timestamp: new Date().toISOString()
             }, { onConflict: 'campaign_id,media_id' }).select();
             if (error) throw error;
@@ -236,6 +240,7 @@ app.post('/campaign/:id/manual-import', async (req, res) => {
             username: mockUsername,
             media_id: mockMediaId,
             media_url: mockMediaUrl,
+            permalink: permalink,
             timestamp: new Date().toISOString(),
             created_at: new Date()
         };
