@@ -1,4 +1,6 @@
-# Instagram UGC Campaign Tracker
+# ig_SaaS
+
+## Instagram UGC Campaign Tracker
 
 Internal tool for tracking Instagram mentions and managing giveaways.
 
