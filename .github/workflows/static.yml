@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ["main", "master", "instagram-ugc-tracker-fail-safe-branded"] # Adjust if necessary
+    branches: ["**"] # Deploy from any branch push
 
 permissions:
   contents: read

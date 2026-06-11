@@ -70,13 +70,16 @@ const syncCampaigns = async () => {
             if (taggedMedia) {
                 for (const media of taggedMedia) {
                     if (!isMockMode) {
-                        await supabase.from('participants').insert({
+                        const { error: insErr } = await supabase.from('participants').insert({
                             campaign_id: campaign.id,
                             username: media.username,
                             media_id: media.id,
                             media_url: media.media_url,
                             timestamp: media.timestamp
                         });
+                        if (insErr && insErr.code !== '23505') {
+                            console.error(`Insert error for ${media.id}:`, insErr.message);
+                        }
                     } else {
                         // Mock deduplication
                         if (!mockDb.participants.find(p => p.media_id === media.id)) {
