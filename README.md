@@ -1,4 +1,4 @@
-# ig_Saas
+# ig_SaaS
 
 ## Instagram UGC Campaign Tracker
 

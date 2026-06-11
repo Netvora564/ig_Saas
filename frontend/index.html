@@ -3,69 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram UGC Tracker</title>
+    <title>ig_SaaS | Instagram UGC Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .winner-animation { animation: celebrate 0.5s ease-in-out infinite alternate; }
+        @keyframes celebrate { from { transform: scale(1); } to { transform: scale(1.1); } }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <div class="text-blue-600 font-bold text-xl mb-4">ig_Saas</div>
-        <header class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-800">Instagram UGC Campaign Tracker</h1>
-            <button id="syncAllBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow">
+<body class="bg-gray-100 min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <header class="flex justify-between items-center mb-10">
+            <div>
+                <div class="text-blue-600 font-black text-2xl tracking-tighter mb-1">ig_SaaS</div>
+                <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Instagram UGC Campaign Tracker</h1>
+                <p class="text-gray-500 text-sm">Internal giveaway management system</p>
+            </div>
+            <button id="syncAllBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all active:scale-95">
                 Sync All Campaigns
             </button>
         </header>
 
         <section class="mb-12">
-            <h2 class="text-2xl font-semibold mb-4">Create New Campaign</h2>
-            <form id="createCampaignForm" class="bg-white p-6 rounded shadow-md flex gap-4">
-                <input type="text" id="campaignName" placeholder="Campaign Name" class="flex-1 border p-2 rounded" required>
-                <input type="text" id="igBusinessId" placeholder="IG Business ID" class="flex-1 border p-2 rounded" required>
-                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded shadow">
-                    Create
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Create New Campaign</h2>
+            <form id="createCampaignForm" class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-wrap gap-4 items-end">
+                <div class="flex-1 min-w-[240px]">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Campaign Name</label>
+                    <input type="text" id="campaignName" placeholder="Summer 2024 Giveaway" class="w-full border-gray-200 border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" required>
+                </div>
+                <div class="flex-1 min-w-[240px]">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">IG Business ID</label>
+                    <input type="text" id="igBusinessId" placeholder="178414..." class="w-full border-gray-200 border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" required>
+                </div>
+                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all active:scale-95">
+                    Create Campaign
                 </button>
             </form>
         </section>
 
         <section>
-            <h2 class="text-2xl font-semibold mb-4">Campaigns</h2>
+            <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                Active Campaigns
+                <span id="campaignCount" class="bg-gray-200 text-gray-600 text-xs py-1 px-2 rounded-full">0</span>
+            </h2>
             <div id="campaignsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Campaigns will be loaded here -->
+                <!-- Campaigns loaded here -->
             </div>
         </section>
 
-        <!-- Modal for Participants -->
-        <div id="participantsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4">
-            <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-                <div class="p-6 border-b flex justify-between items-center">
-                    <h3 id="modalTitle" class="text-xl font-bold">Participants</h3>
-                    <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">&times;</button>
+        <!-- Participants Modal -->
+        <div id="participantsModal" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+                <div class="p-6 border-b flex justify-between items-center bg-gray-50">
+                    <div>
+                        <h3 id="modalTitle" class="text-2xl font-black text-gray-900">Participants</h3>
+                        <p id="modalSubtitle" class="text-gray-500 text-sm italic"></p>
+                    </div>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-900 text-4xl leading-none transition-colors">&times;</button>
                 </div>
-                <div id="modalContent" class="p-6 overflow-y-auto flex-1">
-                    <div class="bg-gray-50 p-4 rounded mb-6 flex gap-4 items-end">
-                        <div class="flex-1">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Manual Import by URL</label>
-                            <input type="text" id="manualUrl" placeholder="https://www.instagram.com/p/..." class="w-full border p-2 rounded">
-                        </div>
-                        <button id="manualImportBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
-                            Import
-                        </button>
-                    </div>
 
-                    <div class="flex justify-between items-center mb-4">
-                        <button id="pickWinnerBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
-                            Pick a Random Winner
-                        </button>
-                        <div id="winnerDisplay" class="text-lg font-bold text-green-600"></div>
-                    </div>
-                    <div id="participantsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        <!-- Participants will be loaded here -->
-                    </div>
-                    <div class="mt-8">
-                        <h4 class="text-lg font-bold mb-2">Previous Winners</h4>
-                        <ul id="winnersList" class="list-disc pl-5">
-                            <!-- Winners will be loaded here -->
-                        </ul>
+                <div class="p-8 overflow-y-auto flex-1">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- Left Col: Actions -->
+                        <div class="lg:col-span-1 space-y-8">
+                            <div class="bg-blue-50 p-6 rounded-xl border border-blue-100">
+                                <h4 class="font-bold text-blue-900 mb-3">Manual Participant Import</h4>
+                                <p class="text-blue-700 text-xs mb-4">Add a specific Instagram post URL to the campaign.</p>
+                                <div class="space-y-3">
+                                    <input type="text" id="manualUrl" placeholder="https://www.instagram.com/p/..." class="w-full border-blue-200 border p-3 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <button id="manualImportBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-all active:scale-95 shadow-sm">
+                                        Import Post
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="bg-purple-50 p-6 rounded-xl border border-purple-100">
+                                <h4 class="font-bold text-purple-900 mb-3">Giveaway Selection</h4>
+                                <button id="pickWinnerBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-black py-4 rounded-lg shadow-lg transition-all active:scale-95 mb-4">
+                                    PICK RANDOM WINNER
+                                </button>
+                                <div id="winnerDisplay" class="text-center p-4 rounded-lg hidden">
+                                    <div class="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">CONGRATULATIONS</div>
+                                    <div id="winnerName" class="text-2xl font-black text-purple-800 tracking-tight"></div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-50 p-6 rounded-xl border border-gray-100">
+                                <h4 class="font-bold text-gray-900 mb-3">Campaign Winners</h4>
+                                <ul id="winnersList" class="space-y-2 text-sm text-gray-600">
+                                    <!-- Winners list -->
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Right Col: Participant Grid -->
+                        <div class="lg:col-span-2">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="font-bold text-gray-800">Mentioned Posts</h4>
+                                <button onclick="refreshParticipants()" class="text-blue-600 text-xs font-bold hover:underline">Refresh List</button>
+                            </div>
+                            <div id="participantsGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                <!-- Participants list -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

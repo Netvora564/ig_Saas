@@ -1,11 +1,9 @@
-// Use window.location.hostname to switch between local and production
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === ''
     ? 'http://localhost:3000'
-    : 'https://your-backend-url.onrender.com'; // TODO: Update this after Render deployment
+    : 'https://your-backend-url.onrender.com';
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchCampaigns();
-
     document.getElementById('createCampaignForm').addEventListener('submit', createCampaign);
     document.getElementById('syncAllBtn').addEventListener('click', syncAll);
 });
@@ -13,27 +11,33 @@ document.addEventListener('DOMContentLoaded', () => {
 async function fetchCampaigns() {
     try {
         const response = await fetch(`${API_URL}/campaigns`);
-        if (!response.ok) throw new Error('Network response was not ok');
         const campaigns = await response.json();
         const list = document.getElementById('campaignsList');
+        const count = document.getElementById('campaignCount');
+
         list.innerHTML = '';
+        count.innerText = campaigns.length;
 
         campaigns.forEach(c => {
             const card = document.createElement('div');
-            card.className = 'bg-white p-6 rounded shadow hover:shadow-md transition-shadow';
+            card.className = 'bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer group';
+            card.onclick = (e) => {
+                if (e.target.tagName !== 'BUTTON') viewParticipants(c.id, c.name);
+            };
             card.innerHTML = `
-                <h3 class="text-xl font-bold mb-2">${c.name}</h3>
-                <p class="text-gray-600 mb-4">ID: ${c.ig_business_id}</p>
-                <div class="flex gap-2">
-                    <button onclick="viewParticipants(${c.id}, '${c.name.replace(/'/g, "\\'")}')" class="bg-blue-100 text-blue-600 px-4 py-2 rounded hover:bg-blue-200">View</button>
-                    <span class="ml-auto text-sm ${c.active ? 'text-green-500' : 'text-red-500'}">${c.active ? 'Active' : 'Inactive'}</span>
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">${c.name}</h3>
+                    <span class="text-[10px] font-black px-2 py-1 rounded bg-green-100 text-green-700 uppercase tracking-widest">Active</span>
                 </div>
+                <div class="text-xs text-gray-400 mb-6 font-mono">ID: ${c.ig_business_id}</div>
+                <button class="w-full bg-gray-50 text-gray-600 font-bold py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all text-sm border border-gray-100">
+                    Open Campaign
+                </button>
             `;
             list.appendChild(card);
         });
-    } catch (error) {
-        console.error('Error fetching campaigns:', error);
-        document.getElementById('campaignsList').innerHTML = '<p class="text-red-500">Failed to load campaigns. Is the backend running?</p>';
+    } catch (err) {
+        console.error('Error fetching campaigns:', err);
     }
 }
 
@@ -41,6 +45,7 @@ async function createCampaign(e) {
     e.preventDefault();
     const btn = e.target.querySelector('button');
     btn.disabled = true;
+    btn.innerText = 'Creating...';
 
     const name = document.getElementById('campaignName').value;
     const ig_business_id = document.getElementById('igBusinessId').value;
@@ -55,11 +60,11 @@ async function createCampaign(e) {
             document.getElementById('createCampaignForm').reset();
             fetchCampaigns();
         }
-    } catch (error) {
-        console.error('Error creating campaign:', error);
-        alert('Failed to create campaign');
+    } catch (err) {
+        console.error('Error creating campaign:', err);
     } finally {
         btn.disabled = false;
+        btn.innerText = 'Create Campaign';
     }
 }
 
@@ -72,16 +77,13 @@ async function syncAll() {
     try {
         const response = await fetch(`${API_URL}/sync`);
         if (response.ok) {
-            alert('Sync completed successfully!');
-            if (currentCampaignId) {
-                fetchParticipants(currentCampaignId);
-            }
-        } else {
-            throw new Error('Sync failed');
+            alert('All campaigns synced successfully with Instagram Graph API.');
+            if (currentCampaignId) fetchParticipants(currentCampaignId);
+            fetchCampaigns();
         }
-    } catch (error) {
-        console.error('Error syncing:', error);
-        alert('Sync failed. Check backend logs.');
+    } catch (err) {
+        console.error('Sync error:', err);
+        alert('Global sync failed.');
     } finally {
         btn.innerText = originalText;
         btn.disabled = false;
@@ -92,9 +94,11 @@ let currentCampaignId = null;
 
 async function viewParticipants(id, name) {
     currentCampaignId = id;
-    document.getElementById('modalTitle').innerText = `Participants: ${name}`;
+    document.getElementById('modalTitle').innerText = name;
+    document.getElementById('modalSubtitle').innerText = `Campaign #${id}`;
     document.getElementById('participantsModal').classList.remove('hidden');
-    document.getElementById('winnerDisplay').innerText = '';
+    document.getElementById('winnerDisplay').classList.add('hidden');
+    document.getElementById('manualUrl').value = '';
 
     fetchParticipants(id);
     fetchWinners(id);
@@ -103,35 +107,13 @@ async function viewParticipants(id, name) {
     document.getElementById('manualImportBtn').onclick = () => manualImport(id);
 }
 
-async function manualImport(id) {
-    const url = document.getElementById('manualUrl').value;
-    if (!url) return alert('Please enter a URL');
-
-    const btn = document.getElementById('manualImportBtn');
-    btn.disabled = true;
-
-    try {
-        const response = await fetch(`${API_URL}/campaign/${id}/manual-import`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url })
-        });
-        if (response.ok) {
-            document.getElementById('manualUrl').value = '';
-            fetchParticipants(id);
-        } else {
-            alert('Failed to import from URL');
-        }
-    } catch (error) {
-        console.error('Error manual importing:', error);
-    } finally {
-        btn.disabled = false;
-    }
+function refreshParticipants() {
+    if (currentCampaignId) fetchParticipants(currentCampaignId);
 }
 
 async function fetchParticipants(id) {
     const grid = document.getElementById('participantsGrid');
-    grid.innerHTML = '<div class="col-span-full text-center">Loading participants...</div>';
+    grid.innerHTML = '<div class="col-span-full py-20 flex flex-col items-center text-gray-300"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>Loading posts...</div>';
 
     try {
         const response = await fetch(`${API_URL}/campaign/${id}/participants`);
@@ -140,26 +122,57 @@ async function fetchParticipants(id) {
 
         participants.forEach(p => {
             const item = document.createElement('div');
-            item.className = 'border rounded overflow-hidden shadow-sm';
+            item.className = 'bg-gray-50 rounded-xl overflow-hidden border border-gray-100 group hover:border-blue-200 transition-all';
             item.innerHTML = `
-                <img src="${p.media_url}" class="w-full h-32 object-cover" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
-                <div class="p-2 text-xs font-bold truncate">@${p.username}</div>
+                <div class="relative pb-[100%] overflow-hidden">
+                    <img src="${p.media_url}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://via.placeholder.com/300?text=No+Image'">
+                </div>
+                <div class="p-3">
+                    <div class="text-xs font-black text-gray-900 mb-1">@${p.username}</div>
+                    <div class="text-[9px] text-gray-400 font-mono">${new Date(p.timestamp).toLocaleDateString()}</div>
+                </div>
             `;
             grid.appendChild(item);
         });
 
         if (participants.length === 0) {
-            grid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">No participants found yet.</p>';
+            grid.innerHTML = '<div class="col-span-full py-20 text-center text-gray-400">No mentions found for this campaign yet.</div>';
         }
-    } catch (error) {
-        console.error('Error fetching participants:', error);
-        grid.innerHTML = '<p class="col-span-full text-center text-red-500">Failed to load participants.</p>';
+    } catch (err) {
+        grid.innerHTML = '<div class="col-span-full py-20 text-center text-red-400 font-bold">Failed to connect to backend.</div>';
+    }
+}
+
+async function manualImport(id) {
+    const urlInput = document.getElementById('manualUrl');
+    const url = urlInput.value;
+    if (!url) return;
+
+    const btn = document.getElementById('manualImportBtn');
+    btn.disabled = true;
+    btn.innerText = 'Importing...';
+
+    try {
+        const response = await fetch(`${API_URL}/campaign/${id}/manual-import`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
+        if (response.ok) {
+            urlInput.value = '';
+            fetchParticipants(id);
+        }
+    } catch (err) {
+        console.error('Import error:', err);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = 'Import Post';
     }
 }
 
 async function fetchWinners(id) {
     const list = document.getElementById('winnersList');
-    list.innerHTML = '<li>Loading winners...</li>';
+    list.innerHTML = '<li class="animate-pulse text-gray-300">Loading history...</li>';
 
     try {
         const response = await fetch(`${API_URL}/campaign/${id}/winners`);
@@ -168,46 +181,46 @@ async function fetchWinners(id) {
 
         winners.forEach(w => {
             const li = document.createElement('li');
-            li.className = 'mb-1';
-            li.innerText = `${w.username} (Picked at ${new Date(w.picked_at).toLocaleString()})`;
+            li.className = 'flex items-center gap-2 p-2 bg-white rounded border border-gray-100';
+            li.innerHTML = `
+                <div class="w-2 h-2 rounded-full bg-purple-500"></div>
+                <span class="font-bold">@${w.username}</span>
+                <span class="text-[10px] text-gray-300 ml-auto">${new Date(w.picked_at).toLocaleDateString()}</span>
+            `;
             list.appendChild(li);
         });
 
-        if (winners.length === 0) {
-            list.innerHTML = '<li class="text-gray-500">No winners picked yet.</li>';
-        }
-    } catch (error) {
-        console.error('Error fetching winners:', error);
-        list.innerHTML = '<li class="text-red-500">Failed to load winners.</li>';
+        if (winners.length === 0) list.innerHTML = '<li class="text-gray-400 text-xs italic">No previous winners.</li>';
+    } catch (err) {
+        list.innerHTML = '<li class="text-red-400 text-xs">Error loading history.</li>';
     }
 }
 
 async function pickWinner(id) {
     const btn = document.getElementById('pickWinnerBtn');
     const display = document.getElementById('winnerDisplay');
+    const nameLabel = document.getElementById('winnerName');
 
     btn.disabled = true;
-    display.innerText = 'Picking...';
-    display.className = 'text-lg font-bold text-blue-600';
+    btn.innerText = 'SELECTING...';
 
     try {
         const response = await fetch(`${API_URL}/campaign/${id}/pick-winner`, { method: 'POST' });
         const result = await response.json();
 
-        if (result.error) {
-            display.innerText = result.error;
-            display.className = 'text-lg font-bold text-red-600';
-        } else {
-            display.innerText = `Winner: @${result.username}!`;
-            display.className = 'text-lg font-bold text-green-600 animate-bounce';
+        if (result.username) {
+            display.classList.remove('hidden');
+            display.classList.add('bg-purple-100', 'border', 'border-purple-200', 'winner-animation');
+            nameLabel.innerText = `@${result.username}`;
             fetchWinners(id);
+        } else {
+            alert(result.error || 'Could not pick winner.');
         }
-    } catch (error) {
-        console.error('Error picking winner:', error);
-        display.innerText = 'Error picking winner';
-        display.className = 'text-lg font-bold text-red-600';
+    } catch (err) {
+        console.error('Winner error:', err);
     } finally {
         btn.disabled = false;
+        btn.innerText = 'PICK RANDOM WINNER';
     }
 }
 
